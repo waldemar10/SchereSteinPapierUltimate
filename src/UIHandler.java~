@@ -1,0 +1,183 @@
+package src;
+
+import org.slf4j.LoggerFactory;
+import src.enums.ColorPalette;
+import src.enums.MenuAction;
+import src.enums.WindowType;
+import src.interfaces.ThresholdUpdateListener;
+import src.windows.CalibrationWindow;
+import src.windows.MainWindow;
+import src.windows.RulesWindow;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.ArrayList;
+
+public class UIHandler {
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(UIHandler.class);
+    private static JFrame window;
+
+    private final HandDetectionController handDetectionController;
+    private final MainWindow mainWindow;
+    private final CalibrationWindow calibrationWindow;
+    private final RulesWindow rulesWindow;
+    private final ThresholdUpdateListener thresholdUpdateListener;
+    public static final Font FONT = new Font("Arial",Font.PLAIN,14);
+
+    private final MenuEventHandler menuEventHandler;
+    public UIHandler(ThresholdUpdateListener thresholdUpdateListener,HandDetectionController handDetectionController) {
+        this.thresholdUpdateListener = thresholdUpdateListener;
+        this.handDetectionController = handDetectionController;
+        mainWindow = new MainWindow(this);
+        calibrationWindow = new CalibrationWindow(this);
+        rulesWindow = new RulesWindow(this);
+        menuEventHandler = new MenuEventHandler(this);
+    }
+
+    public static JFrame getWindow() {
+        return window;
+    }
+    public void initializeUI(String title, int width, int height, WindowType windowType) {
+        createWindow(title, width, height,windowType);
+    }
+    private void createWindow(String title, int width, int height, WindowType windowType) {
+        window = new JFrame(title);
+        window.setSize(width, height);
+        window.setResizable(false);
+        window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        window.setLocationRelativeTo(null);
+
+        switch (windowType){
+            case CALIBRATION:
+                calibrationWindow.setWindow(window);
+                calibrationWindow.createCalibrationWindow(thresholdUpdateListener);
+                break;
+            case MAIN:
+                mainWindow.setWindow(window);
+                mainWindow.createMainWindow(width, height);
+
+                break;
+            case RULES:
+                rulesWindow.setWindow(window);
+                rulesWindow.createRulesWindow();
+                break;
+            case SETTINGS:
+
+                break;
+            default:
+                break;
+        }
+
+        try {
+            Image icon = Toolkit.getDefaultToolkit().getImage(".//resources//PapierBild.jpg");
+            window.setIconImage(icon);
+        } catch (Exception e) {
+            logger.error("Error loading icon", e);
+        }
+
+        window.setVisible(true);
+    }
+
+    private void createRulesWindow() {
+
+        JPanel rulePanel = new JPanel();
+        JButton goBack = new JButton();
+
+        rulePanel.setBackground(Color.RED);
+        rulePanel.setLayout(new BoxLayout(rulePanel, BoxLayout.PAGE_AXIS));
+
+        JLabel ruleImg = createImageLabel(".//resources//RULES.jpg");
+        ruleImg.setAlignmentX(JComponent.CENTER_ALIGNMENT);
+
+        rulePanel.add(ruleImg);
+        goBack.setName(MenuAction.BACK.getActionCommand());
+        goBack.setActionCommand(MenuAction.BACK.getActionCommand());
+        goBack.setText(MenuAction.BACK.getLabel());
+        goBack.setMaximumSize(new Dimension(150,50));
+        goBack.setAlignmentX(JComponent.CENTER_ALIGNMENT);
+        goBack.setBorderPainted(false);
+        goBack.setFocusPainted(false);
+        goBack.setBackground(Color.BLACK);
+        goBack.setFont(new Font("SansSerif",Font.BOLD,16));
+        goBack.setForeground(Color.white);
+        goBack.addActionListener(menuEventHandler);
+       /* goBack.addActionListener(e -> {
+            windowRules.setVisible(false);
+            StartCodeMainWindow.window.setVisible(true);
+        });*/
+
+        rulePanel.add(Box.createRigidArea(new Dimension(0,6)));
+        rulePanel.add(goBack);
+        window.add(rulePanel);
+
+    }
+
+    public JButton createButtons(String name, String btnText, int x, int y, int btnWidth, int btnHeight, boolean isVisible){
+        JButton btn = new JButton();
+        btn.setName(name);
+        btn.setActionCommand(name);
+        btn.setText(btnText);
+        btn.setBounds(x,y,btnWidth,btnHeight);
+        btn.setBackground(ColorPalette.WHITE.getColor());
+        btn.setFont(FONT);
+        btn.setForeground(ColorPalette.BLACK.getColor());
+        btn.setHorizontalAlignment(JLabel.CENTER);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.addActionListener(menuEventHandler);
+        btn.setVisible(isVisible);
+        return btn;
+    }
+
+    public void showCalibrationWindow() {
+
+        if (mainWindow.getWindow() != null) {
+            mainWindow.getWindow().setVisible(false);
+        }
+        if(calibrationWindow.getWindow() != null) {
+            calibrationWindow.getWindow().setVisible(true);
+        }else{
+            initializeUI(WindowType.CALIBRATION.getWindowTitle(), 1000, 700, WindowType.CALIBRATION);
+        }
+
+        handDetectionController.startDetection(calibrationWindow.getWindow());
+
+    }
+
+    public void showMainWindow() {
+
+        if (calibrationWindow.getWindow() != null) {
+            calibrationWindow.getWindow().dispose();
+        }
+        if(rulesWindow.getWindow() != null){
+            rulesWindow.getWindow().dispose();
+        }
+        if(mainWindow.getWindow() != null) {
+            mainWindow.getWindow().setVisible(true);
+            return;
+        }
+        handDetectionController.stopDetection();
+        initializeUI(WindowType.MAIN.getWindowTitle(), 1408, 768, WindowType.MAIN);
+
+    }
+
+    public void showRulesWindow() {
+        if(rulesWindow.getWindow() != null) {
+            rulesWindow.getWindow().setVisible(true);
+        }else{
+            initializeUI(WindowType.RULES.getWindowTitle(), 400, 700, WindowType.RULES);
+        }
+        mainWindow.getWindow().setVisible(false);
+
+    }
+    public JLabel createImageLabel(String imagePath) {
+        try {
+            ImageIcon icon = new ImageIcon(imagePath);
+            return new JLabel(icon);
+        } catch (Exception e){
+            logger.error("Error loading image", e);
+            return new JLabel("No image found at path: " + imagePath);
+        }
+    }
+
+}
