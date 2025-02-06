@@ -14,7 +14,7 @@ public class KonturDemo {
     public static void Kontur() {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
-        String file ="testBild.png";
+        String file ="test.png";
         Mat src = Imgcodecs.imread(file);
         Mat cannyEdges = new Mat();
         Mat hierarchey = new Mat();
